@@ -1,23 +1,28 @@
-name: Check Update
+name: Manual Update Check
 
 on:
-  schedule:
-    - cron: '0 */12 * * *'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
-  check-version:
+  update-check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Run Update Script
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: bash update-template.sh
+        run: |
+          chmod +x update-template.sh
+          ./update-template.sh
 
-      - name: Commit changes
+      - name: Commit and Push
+        if: env.NEW_VERSION != ''
         uses: EndBug/add-and-commit@v9
         with:
-          message: 'Update helium-browser-bin to version'
+          message: "Update helium-browser-bin to version ${{ env.NEW_VERSION }}"
           add: 'srcpkgs/helium-browser-bin/template'
