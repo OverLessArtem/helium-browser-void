@@ -10,18 +10,14 @@ license="GPL-3.0-only, BSD-3-Clause"
 homepage="https://github.com/imputnet/helium-linux"
 
 case "$XBPS_TARGET_MACHINE" in
-	x86_64)
-		_arch="x86_64"
-		_chk="a97b8352d6a7938e8ef3b8c04b1733995324d220f825a662da3f4b4817bd5423"
-		;;
-	aarch64)
-		_arch="arm64"
-		_chk="1593222306d799b3070260bd60f242e6e447cb55bd64807479fc0616b09a60a7"
-		;;
+    x86_64) _arch="x86_64"; _chk="a97b8352d6a7938e8ef3b8c04b1733995324d220f825a662da3f4b4817bd5423" ;;
+    aarch64) _arch="arm64"; _chk="1593222306d799b3070260bd60f242e6e447cb55bd64807479fc0616b09a60a7" ;;
 esac
 
 distfiles="https://github.com/imputnet/helium-linux/releases/download/${version}/${_realname}-${version}-${_arch}_linux.tar.xz"
 checksum=$_chk
+
+wrksrc="${_realname}-${version}-${_arch}_linux"
 
 depends="gtk+3 nss alsa-lib xdg-utils libXScrnSaver libcups libgcrypt
  liberation-fonts-ttf dbus libpulseaudio pciutils libva libffi
@@ -30,29 +26,31 @@ depends="gtk+3 nss alsa-lib xdg-utils libXScrnSaver libcups libgcrypt
 nostrip=yes
 
 do_install() {
-	local target_dir="opt/${pkgname}"
-	
-	vmkdir "${target_dir}"
+    local target_dir="opt/${pkgname}"
+    vmkdir "${target_dir}"
 
-	cp -a ${wrksrc}/. "${DESTDIR}/${target_dir}/"
+    cp -a ${wrksrc}/. "${DESTDIR}/${target_dir}/"
 
-	vsed -i "${DESTDIR}/${target_dir}/helium-wrapper" \
-		-e "s|/opt/helium/|/${target_dir}/|g"
+    vcopy "${FILESDIR}/helium-wrapper" "${target_dir}"
+    chmod +x "${DESTDIR}/${target_dir}/helium-wrapper"
 
-	vsed -i "${DESTDIR}/${target_dir}/helium.desktop" \
-		-e "s|Exec=helium|Exec=helium-browser|g" \
-		-e "s|Icon=helium|Icon=helium-browser|g"
+    vsed -i "${wrksrc}/helium.desktop" \
+        -e 's|^Name=Helium|Name=Helium Browser|' \
+        -e 's|^Exec=helium|Exec=helium-browser|' \
+        -e 's|^Icon=helium|Icon=helium-browser|'
+    
+    vinstall "${wrksrc}/helium.desktop" 644 usr/share/applications
 
-	vmkdir usr/bin
-	ln -sf "/${target_dir}/helium-wrapper" "${DESTDIR}/usr/bin/helium-browser"
+    vmkdir usr/bin
+    ln -sf "/${target_dir}/helium-wrapper" "${DESTDIR}/usr/bin/helium-browser"
 
-	vinstall "${DESTDIR}/${target_dir}/product_logo_256.png" 644 \
-		usr/share/icons/hicolor/256x256/apps helium-browser.png
-	vinstall "${DESTDIR}/${target_dir}/product_logo_256.png" 644 \
-		usr/share/pixmaps helium-browser.png
+    vinstall "${wrksrc}/product_logo_256.png" 644 \
+        usr/share/icons/hicolor/256x256/apps helium-browser.png
+    vinstall "${wrksrc}/product_logo_256.png" 644 \
+        usr/share/pixmaps helium-browser.png
 
-	vinstall "${DESTDIR}/${target_dir}/helium.desktop" 644 \
-		usr/share/applications helium-browser.desktop
+    vlicense "${FILESDIR}/LICENSE.ungoogled_chromium"
 
-	rm "${DESTDIR}/${target_dir}/helium.desktop"
+    rm -f "${DESTDIR}/${target_dir}/helium.desktop"
+    rm -f "${DESTDIR}/${target_dir}/product_logo_256.png"
 }
